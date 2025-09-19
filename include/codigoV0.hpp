@@ -23,8 +23,8 @@ Adafruit_ST7735 tft(&SPI_2, CS, DC, RST);
 int contagem = 0;
 bool acionado = false;
 unsigned long tempo = 0;
-bool CountUpAnterior = LOW;
-bool CountUpAtual = LOW; //verifica se o botão foi clicado e liberado (Anterior = HIGH e Atual = LOW)
+bool CountUpClicado = false; //primeiro o botão é pressionado
+bool CountUpLiberado= false; //em seguida é solto e é incrementada a contagem
 
 void setup() {
   Serial.begin(115200);
@@ -42,8 +42,6 @@ void setup() {
   pinMode(CountUp, INPUT);
   //pinMode(CountDown, INPUT_PULLUP);
   //pinMode(Acionamento, INPUT_PULLUP);
-
-  tempo = millis();
 }
 
 void display() {
@@ -56,20 +54,20 @@ void display() {
 
 void IncrementaContagem(){
   contagem++;
-  CountUpAnterior = false;
-  CountUpAtual = false;
+  CountUpClicado = false;
+  CountUpLiberado = false;
   display();
 }
 
 void loop() {
-  CountUpAtual = digitalRead(CountUp);
+  if (digitalRead(CountUp)==HIGH){
+    CountUpClicado = true;
+    CountUpLiberado = false;
+  } else{
+    CountUpLiberado = true;
+  }
   delay(20);
-
-  // detecta a borda de descida (HIGH → LOW)
-  if (CountUpAnterior == HIGH && CountUpAtual == LOW) {
+  if (CountUpClicado && CountUpLiberado){
     IncrementaContagem();
   }
-  
-  CountUpAnterior = CountUpAtual;
-
 }

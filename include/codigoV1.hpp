@@ -29,7 +29,7 @@ bool CountUpAtual = LOW; //verifica se o botão foi clicado e liberado (Anterior
 void setup() {
   Serial.begin(115200);
   SPI_2.begin();
-  //delay(5000);
+  delay(5000);
 
   Serial.println("Display inicializado!");
 
@@ -63,15 +63,13 @@ void IncrementaContagem(){
 
 void loop() {
   CountUpAtual = digitalRead(CountUp);
+  delay(20);
 
-  // detecta a borda de descida do botão (HIGH -> LOW)
+  // detecta a borda de descida (HIGH → LOW)
   if (CountUpAnterior == HIGH && CountUpAtual == LOW) {
     IncrementaContagem();
   }
-
-  if (millis()-tempo > 20){
-    tempo = millis();
-    CountUpAnterior = CountUpAtual;
-  }
+  
+  CountUpAnterior = CountUpAtual;
 
 }

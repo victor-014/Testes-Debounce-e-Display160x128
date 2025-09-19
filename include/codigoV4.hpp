@@ -24,9 +24,12 @@ int contagem = 0;
 bool acionado = false;
 unsigned long tempo = 0;
 unsigned long debounce = 0; //variável que armazena o tempo em que o botão teve uma borda de subida ou descida
-bool CountUpAnterior = LOW;
-bool CountUpAtual = LOW; // verifica se o botão foi clicado e liberado (Anterior = HIGH e Atual = LOW)
-bool CountUpEstavel = LOW; // detecta e armazena o estado estável (> 20ms) do botão
+bool FallingCountUp = false;
+
+void flagIncrementa(){
+  debounce = millis();
+  FallingCountUp = true;
+}
 
 void setup() {
   Serial.begin(115200);
@@ -45,7 +48,7 @@ void setup() {
   //pinMode(CountDown, INPUT_PULLUP);
   //pinMode(Acionamento, INPUT_PULLUP);
 
-  tempo = millis();
+  attachInterrupt(digitalPinToInterrupt(CountUp), flagIncrementa, FALLING);
 }
 
 void display() {
@@ -58,26 +61,17 @@ void display() {
 
 void IncrementaContagem(){
   contagem++;
-  CountUpAnterior = false;
-  CountUpAtual = false;
   display();
 }
 
 void loop() {
-  CountUpAtual = digitalRead(CountUp);
-
-  if (CountUpAtual != CountUpAnterior){
-    debounce = millis();
-    CountUpAnterior = CountUpAtual;
-  }
-
-  if (millis() - debounce > 20){
-   if (CountUpAtual != CountUpEstavel){
-    CountUpEstavel = CountUpAtual;
-    if (CountUpEstavel == LOW && CountUpAnterior == LOW){
+  if (FallingCountUp){
+    if (millis() - debounce > 50){
+      FallingCountUp = false;
       IncrementaContagem();
     }
-   }
+    else if (digitalRead(CountUp) == HIGH){
+      FallingCountUp = false;
+    }
   }
-
 }

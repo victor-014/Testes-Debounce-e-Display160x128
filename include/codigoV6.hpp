@@ -21,7 +21,6 @@ Adafruit_ST7735 tft(&SPI_2, CS, DC, RST);
 int contagem = 0;
 bool acionado = false;
 unsigned long tempo = 0;
-bool estadoAnterior = LOW;
 bool bordaCountUp = false;
 int countUp = 0;
 
@@ -41,18 +40,18 @@ void IncrementaContagem(){
 }
 
 void debounceCountUp(){
-    bool leituraCountUp = digitalRead(botaoUp);
-    if (leituraCountUp != estadoAnterior){
-        estadoAnterior = leituraCountUp;
-        bordaCountUp = true;
-        countUp = 0;
-    } else if (leituraCountUp == HIGH && bordaCountUp){
+    if (digitalRead(botaoUp) == HIGH && bordaCountUp){
         countUp++;
         if (countUp == 20){
             IncrementaContagem();
             bordaCountUp = false;
         }
     }
+}
+
+void bordaBotaoUp(){
+    countUp = 0;
+    bordaCountUp = true;
 }
 
 void setup() {
@@ -75,6 +74,8 @@ void setup() {
     Timer.setOverflow(1000,MICROSEC_FORMAT);
     Timer.attachInterrupt(debounceCountUp);
     Timer.resume();
+
+    attachInterrupt(digitalPinToInterrupt(botaoUp), bordaBotaoUp, RISING);
 }
 
 void loop() {

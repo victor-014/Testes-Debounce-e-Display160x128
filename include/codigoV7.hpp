@@ -2,7 +2,6 @@
 #include <Adafruit_GFX.h>    // Core graphics library
 #include <Adafruit_ST7735.h> // Hardware-specific library for ST7735
 #include <STM32FreeRTOS.h>
-#include <limits.h>
 
 // Pinos do Display LCD 16x02
 #define CS  PB12
@@ -26,16 +25,14 @@ int botao[4] = {botaoUp, botaoDown, botaoAciona, botaoAborta};
 bool leitura;
 int contagem = 0;
 int contagemSelecionada = 0;
+bool acionado = false;
+unsigned long tempo = 0;
 bool borda[4] = {0, 0, 0, 0};
 int count[4] = {0, 0, 0, 0};
+bool contagemAcionada = false;
 uint8_t text_size = 2;
 
 HardwareTimer Timer(TIM2);
-
-TaskHandle_t taskAcionaHandle = NULL;
-
-#define NOTIFY_ACIONA (1 << 0)  // equivale a 0001
-#define NOTIFY_ABORTA (1 << 1)  // equivale a 0010
 
 void display() {
     tft.setCursor(8*7*text_size+1, 7*text_size+1); //são usados 8x8 pixels da tela para um caractere (pixels 0-7 para 1° coluna/linha)
@@ -56,30 +53,23 @@ void decrementaContagem(){
 }
 
 static void acionaContagem(void *pvParameters){
-    uint32_t ulNotifyValue;
     for(;;){
-        // Espera por ACIONA ou ABORTA
-        xTaskNotifyWait(0, ULONG_MAX, &ulNotifyValue, portMAX_DELAY);
-
-        if (ulNotifyValue & NOTIFY_ACIONA) {
+        if(contagemAcionada){
             contagemSelecionada = contagem;
-            while (contagem > 0) {
-                // Verifica se recebeu ABORTA durante o loop
-                if (xTaskNotifyWait(0, ULONG_MAX, &ulNotifyValue, 0) == pdPASS) {
-                    if (ulNotifyValue & NOTIFY_ABORTA) {
-                        contagem = contagemSelecionada;
-                        display();
-                        break; // sai do while imediatamente
-                    }
-                }
+            while(contagem>0){
                 vTaskDelay(1);
                 decrementaContagem();
             }
+            contagemAcionada = false;
         }
-        else if (ulNotifyValue & NOTIFY_ABORTA) {
-            // Caso receba ABORTA sem estar rodando
+    }
+}
+
+static void abortaContagem(void *pvParameters){
+    for(;;){
+        if(abortaContagem){
+            contagemAcionada = false;
             contagem = contagemSelecionada;
-            display();
         }
     }
 }
@@ -98,10 +88,11 @@ void debounce(){
                         decrementaContagem();
                         break;
                     case 2:
-                        xTaskNotify(taskAcionaHandle, NOTIFY_ACIONA, eSetBits);
+                        contagemAcionada = true;
                         break;
                     case 3:
-                        xTaskNotify(taskAcionaHandle, NOTIFY_ABORTA, eSetBits);
+                        contagemAcionada = false;
+                        contagem = contagemSelecionada;
                         break;
                 }
                 borda[i] = false;
@@ -145,7 +136,8 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(botaoAciona), BordaBotaoAciona, RISING);
     attachInterrupt(digitalPinToInterrupt(botaoAborta), BordaBotaoAborta, RISING);
 
-    xTaskCreate(acionaContagem, "Task1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &taskAcionaHandle);
+    xTaskCreate(acionaContagem, "Task1", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+    xTaskCreate(abortaContagem, "Task2", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2, NULL);
 
     vTaskStartScheduler();
 }

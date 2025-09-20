@@ -24,11 +24,11 @@ int contagem = 0;
 bool acionado = false;
 unsigned long tempo = 0;
 unsigned long debounce = 0; //variável que armazena o tempo em que o botão teve uma borda de subida ou descida
-bool FallingCountUp = false;
+bool risingCountUp = false;
 
 void flagIncrementa(){
   debounce = millis();
-  FallingCountUp = true;
+  risingCountUp = true;
 }
 
 void setup() {
@@ -48,7 +48,7 @@ void setup() {
   //pinMode(CountDown, INPUT_PULLUP);
   //pinMode(Acionamento, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(CountUp), flagIncrementa, FALLING);
+  attachInterrupt(digitalPinToInterrupt(CountUp), flagIncrementa, RISING);
 }
 
 void display() {
@@ -65,13 +65,13 @@ void IncrementaContagem(){
 }
 
 void loop() {
-  if (FallingCountUp){
-    if (millis() - debounce > 50){
-      FallingCountUp = false;
+  if (risingCountUp){
+    if (millis() - debounce > 20){
+      risingCountUp = false;
       IncrementaContagem();
     }
     else if (digitalRead(CountUp) == HIGH){
-      FallingCountUp = false;
+      risingCountUp = false;
     }
   }
 }
